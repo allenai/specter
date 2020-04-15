@@ -7,7 +7,7 @@ Repository for "Document-level Representation Learning usingCitation-informed Tr
 
 A collection of Public API's for using SPECTER is available at:
 
-`https://github.com/allenai/paper-embedding-public-apis`
+[https://github.com/allenai/paper-embedding-public-apis](https://github.com/allenai/paper-embedding-public-apis)
 
 ## Citing
 

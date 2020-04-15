@@ -2,14 +2,18 @@
 Repository for "Document-level Representation Learning usingCitation-informed Transformers".
 [paper](https://arxiv.org)
 
+### Model 
 
-## Public API
+Model and data will be released soon.
 
-A collection of Public API's for using SPECTER is available at:
+### Public API
+
+A public API to use SPECTER is available at:
 
 [https://github.com/allenai/paper-embedding-public-apis](https://github.com/allenai/paper-embedding-public-apis)
 
-## Citing
+
+### Citing
 
 ```
 @inproceedings{specter2020cohan,

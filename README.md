@@ -16,7 +16,7 @@ A public API to use SPECTER is available at:
 
 ```
 @inproceedings{specter2020cohan,
-  title={Document-level Representation Learning using Citation-informed Transformers},
+  title={SPECTER: Document-level Representation Learning using Citation-informed Transformers},
   author={Arman Cohan and Sergey Feldman and Iz Beltagy and Doug Downey and Daniel S. Weld},
   booktitle={ACL},
   year={2020}

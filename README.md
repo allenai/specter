@@ -1,5 +1,5 @@
 # SPECTER
-Repository for "Document-level Representation Learning usingCitation-informed Transformers".  [paper](https://arxiv.org/pdf/2004.07180.pdf)
+Repository for "SPECTER: Document-level Representation Learning usingCitation-informed Transformers".  [paper](https://arxiv.org/pdf/2004.07180.pdf)
 
 ### Model 
 

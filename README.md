@@ -1,8 +1,8 @@
 # SPECTER: Document-level Representation Learning using Citation-informed Transformers
 
-[**SPECTER**](#How-to-use-the-pretrained-model) | [**Pretrained models**](#download-the-dataset) |
-[**SciDocs**](https://github.com/allenai/scidocs) |
-[**Paper**](https://arxiv.org/pdf/2004.07180.pdf) 
+[**SPECTER**](#specter-document-level-representation-learning-using-citation-informed-transformers) | [**Pretrained models**](#How-to-use-the-pretrained-model) | 
+[**SciDocs**](https://github.com/allenai/scidocs) | [**Public API**](#Public-api) | 
+[**Paper**](https://arxiv.org/pdf/2004.07180.pdf) | [**Citing**](#Citation) 
 
 
 This repository contains code, link to pretrained models, instructions to use [SPECTER](https://arxiv.org/pdf/2004.07180.pdf) and link to the [SciDocs](https://github.com/allenai/scidocs) evaluation framework.
@@ -11,23 +11,34 @@ This repository contains code, link to pretrained models, instructions to use [S
 
 1 - Clone the repo and download the pretrained model and supporting files:
 
-Download the tar file at: [**download**](https://ai2-s2-research-public.s3-us-west-2.amazonaws.com/specter/archive.tar.gz) [833 MiB]
-The compressed archive includes a `model.tar.gz` file which is the pretrained model as well as supporting files that are inside a `data/` directory.  
+### Download
 
-```
+Download the tar file at: [**download**](https://ai2-s2-research-public.s3-us-west-2.amazonaws.com/specter/archive.tar.gz) [833 MiB]  
+The compressed archive includes a `model.tar.gz` file which is the pretrained model as well as supporting files that are inside a `data/` directory. 
+
+Here are the commands to run:
+
+```ruby
 git clone git@github.com:allenai/specter-internal.git
+
 cd specter-internal
+
 wget https://ai2-s2-research-public.s3-us-west-2.amazonaws.com/specter/archive.tar.gz
+
 tar -xzvf https://ai2-s2-research-public.s3-us-west-2.amazonaws.com/specter/archive.tar.gz 
 ```
 
 
 2 - Install the environment:
 
-```bash
+```ruby
 conda create --name specter python=3.7 setuptools  
+
 conda activate specter  
-conda install pytorch cudatoolkit=10.1 -c pytorch   # if you don't have gpus, remove cudatoolkit argument
+
+# if you don't have gpus, remove cudatoolkit argument
+conda install pytorch cudatoolkit=10.1 -c pytorch   
+
 pip install -r requirements.txt  
 ```
 
@@ -35,7 +46,7 @@ pip install -r requirements.txt
 
 Specter requires two main files as input to embed the document. A text file with ids of the documents you want to embed and a json metadata file consisting of the title and abstract information. Sample files are provided in the `data/` directory to get you started. Input data format is according to:
 
-```bash
+```ruby
 metadata.json format:
 
 {
@@ -46,7 +57,7 @@ metadata.json format:
 
 To use SPECTER to embed your data use the following command:
 
-```bash
+```ruby
 python scripts/embed.py \  
 --ids data/sample.ids --metadata data/sample-metadata.json \  
 --model ./model.tar.gz \  
@@ -74,7 +85,6 @@ In order to reproduce our results please refer to the [SciDocs](https://github.c
 
 Instructions on training SPECTER on your own data is available on request.
 
-
 # SciDocs benchmark
 
 SciDocs evaluation framework consists of a suite of evaluation tasks designed for document-level tasks.
@@ -88,7 +98,7 @@ Link to SciDocs:
 
 Please cite the [SPECTER paper](https://arxiv.org/pdf/2004.07180.pdf) as:  
 
-```
+```ruby
 @inproceedings{specter2020cohan,
   title={SPECTER: Document-level Representation Learning using Citation-informed Transformers},
   author={Arman Cohan and Sergey Feldman and Iz Beltagy and Doug Downey and Daniel S. Weld},

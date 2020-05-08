@@ -25,7 +25,7 @@ cd specter
 
 wget https://ai2-s2-research-public.s3-us-west-2.amazonaws.com/specter/archive.tar.gz
 
-tar -xzvf https://ai2-s2-research-public.s3-us-west-2.amazonaws.com/specter/archive.tar.gz 
+tar -xzvf archive.tar.gz 
 ```
 
 

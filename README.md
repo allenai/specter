@@ -1,6 +1,6 @@
 # SPECTER: Document-level Representation Learning using Citation-informed Transformers
 
-[**SPECTER**](#specter-document-level-representation-learning-using-citation-informed-transformers) | [**Pretrained models**](#How-to-use-the-pretrained-model) | 
+[**SPECTER**](#specter-document-level-representation-learning-using-citation-informed-transformers) | [**Pretrained models**](#How-to-use-the-pretrained-model) | [**Training your own model**](#advanced-training-your-own-model) | 
 [**SciDocs**](https://github.com/allenai/scidocs) | [**Public API**](#Public-api) | 
 [**Paper**](https://arxiv.org/pdf/2004.07180.pdf) | [**Citing**](#Citation) 
 

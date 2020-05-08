@@ -58,13 +58,13 @@ metadata.json format:
 To use SPECTER to embed your data use the following command:
 
 ```ruby
-python scripts/embed.py \  
---ids data/sample.ids --metadata data/sample-metadata.json \  
---model ./model.tar.gz \  
---output-file output.jsonl \  
---vocab-dir data/vocab/ \  
+python scripts/embed.py \
+--ids data/sample.ids --metadata data/sample-metadata.json \
+--model ./model.tar.gz \
+--output-file output.jsonl \
+--vocab-dir data/vocab/ \
 --batch-size 16 \
---cuda-device -1 
+--cuda-device -1
 ```
 
 Change `--cuda-device` to `0` or your specified GPU if you want faster inference.  

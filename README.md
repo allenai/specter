@@ -19,9 +19,9 @@ The compressed archive includes a `model.tar.gz` file which is the pretrained mo
 Here are the commands to run:
 
 ```ruby
-git clone git@github.com:allenai/specter-internal.git
+git clone git@github.com:allenai/specter.git
 
-cd specter-internal
+cd specter
 
 wget https://ai2-s2-research-public.s3-us-west-2.amazonaws.com/specter/archive.tar.gz
 

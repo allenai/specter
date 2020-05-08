@@ -108,13 +108,13 @@ Where `docids` are ids of documents in your data and `count` is a measure of imp
   
 The `create_training_files.py` script processes this structure with a triplet sampler that selects both easy and hard negatives (as described in the paper) according the `count` value in the above structure. For example papers with `count=5` are considered positive candidates, papers with `count=1` considered hard negatives and other papers that are not cited are easy negatives. You can control the number of hard negatives by setting `--ratio_hard_negatives` argument in the script.  
 
-After preprocessing the data you will have three pickled files containing training instannces. Use the following script to start training the model:
+After preprocessing the data you will have three pickled files containing training instannces as well as a `metrics.json` showing number of examples in each set. Use the following script to start training the model:
 
 ```ruby
 ./scripts/run-exp-simple.sh -c experiment_configs/simple.jsonnet \
 -s [output-dir] --num-epochs [num-epochs] --batch-size [batch-size] \
 --train-path [path-to-train.pkl] --dev-path [path-to-dev.pkl] \
---cuda-device 0 
+--cuda-device 0 --num-train-instances [num-instances]
 ```
 
 The model's checkpoint and logs will be stored in `[output-dir]`.  

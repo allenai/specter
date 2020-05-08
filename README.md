@@ -81,9 +81,46 @@ A collection of public APIs for embedding scientific papers using Specter is ava
 
 In order to reproduce our results please refer to the [SciDocs](https://github.com/allenai/scidocs) repo where we provide the embeddings for the evaluation tasks and instructions on how to run the benchmark to get the results.
 
-# Training your own model
+# Advanced: Training your own model
 
-Instructions on training SPECTER on your own data is available on request.
+We will be providing an easier interface for training your own model.
+
+In the meanwhile, you can use the following instructions:
+
+You need to first create pickled training instances using the `specter/data_utils/create_training_files.py` script and then use the resulting files as input to the `scripts/run-exp-simple.sh` script.  
+
+You will need the following files:
+* `data.json` containing the document ids and their relationship.  
+* `metadata.json` containing mapping of document ids to textual fiels (e.g., `title`, `abstract`)
+* `train.txt`,`val.txt`, `test.txt` containing document ids corresponding to train/val/test sets (one doc id per line).
+
+The `data.json` file should have the following structure (a nested dict):  
+```ruby
+{"docid1" : {  "docid11": {"count": 1}, 
+               "docid12": {"count": 5},
+               "docid13": {"count": 1}, ....
+            }
+"docid2":   {  "docid21": {"count": 1}, ....
+....}
+```
+
+Where `docids` are ids of documents in your data and `count` is a measure of importance of the relationship between two documents. In our dataset we used citations as indicator of relationship where `count=5` means direct citation while `count=1` refers to a citation of a citation.  
+  
+The `create_training_files.py` script processes this structure with a triplet sampler that selects both easy and hard negatives (as described in the paper) according the `count` value in the above structure. For example papers with `count=5` are considered positive candidates, papers with `count=1` considered hard negatives and other papers that are not cited are easy negatives. You can control the number of hard negatives by setting `--ratio_hard_negatives` argument in the script.  
+
+After preprocessing the data you will have three pickled files containing training instannces. Use the following script to start training the model:
+
+```ruby
+./scripts/run-exp-simple.sh -c experiment_configs/simple.jsonnet \
+-s [output-dir] --num-epochs [num-epochs] --batch-size [batch-size] \
+--train-path [path-to-train.pkl] --dev-path [path-to-dev.pkl] \
+--cuda-device 0 
+```
+
+The model's checkpoint and logs will be stored in `[output-dir]`.  
+You can monitor the training progress using `tensorboard`:  
+`tensorboard --logdir [output-dir] --bind_all`
+
 
 # SciDocs benchmark
 

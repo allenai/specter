@@ -438,11 +438,11 @@ class DataReader(DatasetReader):
         pos_author_tokens = None
         neg_author_tokens = None
 
-        source_author, source_author_position = self._get_author_field(source_paper['authors'])
+        source_author, source_author_position = self._get_author_field(source_paper.get('authors', []))
         if positive_paper is not None:
-            pos_author, pos_author_position = self._get_author_field(positive_paper['authors'])
+            pos_author, pos_author_position = self._get_author_field(positive_paper.get('authors', []))
         if negative_paper is not None:
-            neg_author, neg_author_position = self._get_author_field(negative_paper['authors'])
+            neg_author, neg_author_position = self._get_author_field(negative_paper.get('authors', []))
         fields = {
             'source_abstract': TextField(source_abstract_tokens, self._token_indexers),
             'source_title': TextField(source_title_tokens, self._token_indexers),

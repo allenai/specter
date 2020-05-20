@@ -419,7 +419,7 @@ def main(data_files, train_ids, val_ids, test_ids, metadata_file, outdir, n_jobs
     """
     Generates instances from a list of datafiles and stores them as a stream of objects
     Args:
-        data_files: list of files (coviews.json, copdf.json, ...)
+        data_files: list of files indicating cooccurrence counts
         train_ids: list of training paper ids corresponding to each data file
         val_ids: list of validation paper ids
         test_ids: list of test paper ids
@@ -486,23 +486,12 @@ def main(data_files, train_ids, val_ids, test_ids, metadata_file, outdir, n_jobs
 
 
 if __name__ == '__main__':
-    data_files = ["path/to/raw/data.json",
-                  ]
-    metadata_file = "path/to/metadata.json"
-    train_ids, val_ids, test_ids = [], [], []
-    for d in data_files:
-        file_path = d[:-5]
-        train_ids.append(file_path + '/train.csv')
-        val_ids.append(file_path + '/val.csv')
-        test_ids.append(file_path + '/test.csv')
 
     ap = argparse.ArgumentParser()
-    # ap.add_argument('--datafiles', help='path to the user data file (e.g., coviews.json)')
-    # ap.add_argument('--train-ids', help='path to the ids file', dest='train_ids')
-    # ap.add_argument('--dev-ids', help='path to the ids file', dest='dev_ids')
-    # ap.add_argument('--test-ids', help='path to the ids file', dest='test_ids')
+    ap.add_argument('--data-dir', help='path to a directory containing `data.json`, `train.csv`, `dev.csv` and `test.csv` files')
+    ap.add_argument('--metadata', help='path to the metadata file')
     ap.add_argument('--outdir', help='output directory to files')
-    ap.add_argument('--njobs', help='number of parallel jobs for instance conversion', default=-1, type=int)
+    ap.add_argument('--njobs', help='number of parallel jobs for instance conversion', default=1, type=int)
     ap.add_argument('--njobs_raw', help='number of parallel jobs for triplet generation', default=12, type=int)
     ap.add_argument('--ratio_hard_negatives', default=0.3, type=float)
     ap.add_argument('--samples_per_query', default=5, type=int)
@@ -513,22 +502,20 @@ if __name__ == '__main__':
     ap.add_argument('--concat-title-abstract', action='store_true', default=False)
     ap.add_argument('--included-text-fields', default='title abstract', help='space delimieted list of fields to include in the main text field'
                                                                              'possible values: `title`, `abstract`, `authors`')
-
-    ap.add_argument('--metadata', default=None)
-
     args = ap.parse_args()
-    #
+
+    data_file = args.data_dir + '/data.json'
+    train_ids = args.data_dir + '/train.txt'
+    val_ids = args.data_dir + '/val.txt'
+    test_ids = args.data_dir + '/test.txt'
 
     if args.metadata:
         metadata_file = args.metadata
 
-    if args.data_files:
-        data_files = args.data_files.split(' ')
-
     init_logger()
     logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
-    main(data_files, train_ids, val_ids, test_ids, metadata_file, args.outdir, args.njobs, args.njobs_raw,
+    main([data_file], [train_ids], [val_ids], [test_ids], metadata_file, args.outdir, args.njobs, args.njobs_raw,
          margin_fraction=args.margin_fraction, ratio_hard_negatives=args.ratio_hard_negatives,
          samples_per_query=args.samples_per_query, comment=args.comment, bert_vocab=args.bert_vocab,
          concat_title_abstract=args.concat_title_abstract, included_text_fields=args.included_text_fields

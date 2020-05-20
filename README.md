@@ -86,11 +86,9 @@ In order to reproduce our results please refer to the [SciDocs](https://github.c
 
 # Advanced: Training your own model
 
-We will be providing an easier interface for training your own model.
+First follow steps 1 and 2 from the [Pretrained models](#How-to-use-the-pretrained-model) section to download the supporting files and install the environment.
 
-In the meanwhile, you can use the following instructions:
-
-You need to first create pickled training instances using the `specter/data_utils/create_training_files.py` script and then use the resulting files as input to the `scripts/run-exp-simple.sh` script.  
+Next you need to create pickled training instances using the `specter/data_utils/create_training_files.py` script and then use the resulting files as input to the `scripts/run-exp-simple.sh` script.  
 
 You will need the following files:
 * `data.json` containing the document ids and their relationship.  

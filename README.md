@@ -40,7 +40,10 @@ conda activate specter
 conda install pytorch cudatoolkit=10.1 -c pytorch   
 
 pip install -r requirements.txt  
+
+python setup.py install
 ```
+
 
 3 - Embed papers or documents using SPECTER
 

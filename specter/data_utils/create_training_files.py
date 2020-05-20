@@ -1,5 +1,6 @@
 "run this script to create training pickled training files"
 import logging
+import os
 
 import argparse
 import json
@@ -504,10 +505,10 @@ if __name__ == '__main__':
                                                                              'possible values: `title`, `abstract`, `authors`')
     args = ap.parse_args()
 
-    data_file = args.data_dir + '/data.json'
-    train_ids = args.data_dir + '/train.txt'
-    val_ids = args.data_dir + '/val.txt'
-    test_ids = args.data_dir + '/test.txt'
+    data_file = os.path.join(args.data_dir, 'data.json')
+    train_ids = os.path.join(args.data_dir, 'train.txt')
+    val_ids = os.path.join(args.data_dir, 'val.txt')
+    test_ids = os.path.join(args.data_dir, 'test.txt')
 
     if args.metadata:
         metadata_file = args.metadata

@@ -40,7 +40,10 @@ conda activate specter
 conda install pytorch cudatoolkit=10.1 -c pytorch   
 
 pip install -r requirements.txt  
+
+python setup.py install
 ```
+
 
 3 - Embed papers or documents using SPECTER
 
@@ -83,11 +86,9 @@ In order to reproduce our results please refer to the [SciDocs](https://github.c
 
 # Advanced: Training your own model
 
-We will be providing an easier interface for training your own model.
+First follow steps 1 and 2 from the [Pretrained models](#How-to-use-the-pretrained-model) section to download the supporting files and install the environment.
 
-In the meanwhile, you can use the following instructions:
-
-You need to first create pickled training instances using the `specter/data_utils/create_training_files.py` script and then use the resulting files as input to the `scripts/run-exp-simple.sh` script.  
+Next you need to create pickled training instances using the `specter/data_utils/create_training_files.py` script and then use the resulting files as input to the `scripts/run-exp-simple.sh` script.  
 
 You will need the following files:
 * `data.json` containing the document ids and their relationship.  
@@ -108,18 +109,28 @@ Where `docids` are ids of documents in your data and `count` is a measure of imp
   
 The `create_training_files.py` script processes this structure with a triplet sampler that selects both easy and hard negatives (as described in the paper) according the `count` value in the above structure. For example papers with `count=5` are considered positive candidates, papers with `count=1` considered hard negatives and other papers that are not cited are easy negatives. You can control the number of hard negatives by setting `--ratio_hard_negatives` argument in the script.  
 
-After preprocessing the data you will have three pickled files containing training instannces as well as a `metrics.json` showing number of examples in each set. Use the following script to start training the model:
-
+- Create preprocessed training files:  
 ```ruby
-./scripts/run-exp-simple.sh -c experiment_configs/simple.jsonnet \
--s [output-dir] --num-epochs [num-epochs] --batch-size [batch-size] \
---train-path [path-to-train.pkl] --dev-path [path-to-dev.pkl] \
---cuda-device 0 --num-train-instances [num-instances]
+python specter/data_utils/create_training_files.py \
+--data-dir data/training \
+--metadata data/training/metadata.json \
+--outdir data/preprocessed/
 ```
 
-The model's checkpoint and logs will be stored in `[output-dir]`.  
+After preprocessing the data you will have three pickled files containing training instannces as well as a `metrics.json` showing number of examples in each set. Use the following script to start training the model:
+
+- Run the training script
+```ruby
+./scripts/run-exp-simple.sh -c experiment_configs/simple.jsonnet \
+-s model-output/ --num-epochs 2 --batch-size 4 \
+--train-path data/preprocessed/data-train.p --dev-path data/preprocessed/data-val.p \
+--num-train-instances 55 --cuda-device -1
+```
+
+In this example: The model's checkpoint and logs will be stored in `model-output/ `.  
+Note that you need to set the correct `--num-train-instances` for your dataset. This number is stored in `metrics.json` file output from the preprocessing step.
 You can monitor the training progress using `tensorboard`:  
-`tensorboard --logdir [output-dir] --bind_all`
+`tensorboard --logdir model-output/  --bind_all`
 
 
 # SciDocs benchmark

@@ -1,3 +1,5 @@
+![plot](https://i.ibb.co/3TC1WmG/specter-logo-cropped.png)
+
 # SPECTER: Document-level Representation Learning using Citation-informed Transformers
 
 [**SPECTER**](#specter-document-level-representation-learning-using-citation-informed-transformers) | [**Pretrained models**](#How-to-use-the-pretrained-model) | [**Training your own model**](#advanced-training-your-own-model) | 

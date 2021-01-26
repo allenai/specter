@@ -9,7 +9,60 @@
 
 This repository contains code, link to pretrained models, instructions to use [SPECTER](https://arxiv.org/pdf/2004.07180.pdf) and link to the [SciDocs](https://github.com/allenai/scidocs) evaluation framework.
 
+
+***** New Jan 2021: HuggingFace models *****
+
+Specter is now accessible through HuggingFace's transformers library.  
+
+*Thanks to [@zhipenghoustat](https://github.com/zhipenghoustat) for providing the Huggingface training scripts and the checkpoint.*
+
+See below:
+
 # How to use the pretrained model
+
+## 1- Through Huggingface Transformers Library
+
+Requirement: `pip install --upgrade transformers==4.2`
+
+```python
+from transformers import AutoTokenizer, AutoModel
+
+# load model and tokenizer
+tokenizer = AutoTokenizer.from_pretrained('allenai/specter')
+model = AutoModel.from_pretrained('allenai/specter')
+
+papers = [{'title': 'BERT', 'abstract': 'We introduce a new language representation model called BERT'},
+          {'title': 'Attention is all you need', 'abstract': ' The dominant sequence transduction models are based on complex recurrent or convolutional neural networks'}]
+
+# concatenate title and abstract
+title_abs = [d['title'] + ' ' + (d.get('abstract') or '') for d in papers]
+# preprocess the input
+inputs = tokenizer(title_abs, padding=True, truncation=True, return_tensors="pt", max_length=512)
+result = model(**inputs)
+# take the first token in the batch as the embedding
+embeddings = result.last_hidden_state[:, 0, :]
+```
+
+A sample script to run the model in batch mode on a dataset of papers is provided under `scripts/embed_papers_hf.py`
+
+How to use:
+```
+CUDA_VISIBLE_DEVICES=0 python scripts/embed_papers_hf.py \
+--data-path path/to/paper-metadata.json \
+--output path/to/write/output.json \
+--batch-size 8
+```
+
+** Note that huggingface model yields slightly higher average results than those reported in the paper.
+To reproduce our exact numbers use our original implementation see [**reproducing results**](#How-to-reproduce-our-results).
+
+*Expected SciDocs results from the huggingface model:*
+
+| mag-f1 	| mesh-f1 	| co-view-map 	| co-view-ndcg 	| co-read-map 	| co-read-ndcg 	| cite-map 	| cite-ndcg 	| cocite-map 	| cocite-ndcg 	| recomm-ndcg 	| recomm-P@1 	| Avg  	|
+|--------	|---------	|-------------	|--------------	|-------------	|--------------	|----------	|-----------	|------------	|-------------	|-------------	|------------	|------	|
+| 79.4   	| 87.7    	| 83.4        	| 91.4         	| 85.1        	| 92.7         	| 92.0     	| 96.6      	| 88.0       	| 94.7        	| 54.6        	| 20.9       	| 80.5 	|
+
+## 2- Through this repo
 
 1 - Clone the repo and download the pretrained model and supporting files:
 
@@ -20,7 +73,7 @@ The compressed archive includes a `model.tar.gz` file which is the pretrained mo
 
 Here are the commands to run:
 
-```ruby
+```python
 git clone git@github.com:allenai/specter.git
 
 cd specter
@@ -33,7 +86,7 @@ tar -xzvf archive.tar.gz
 
 2 - Install the environment:
 
-```ruby
+```python
 conda create --name specter python=3.7 setuptools  
 
 conda activate specter  
@@ -51,7 +104,7 @@ python setup.py install
 
 Specter requires two main files as input to embed the document. A text file with ids of the documents you want to embed and a json metadata file consisting of the title and abstract information. Sample files are provided in the `data/` directory to get you started. Input data format is according to:
 
-```ruby
+```python
 metadata.json format:
 
 {
@@ -62,7 +115,7 @@ metadata.json format:
 
 To use SPECTER to embed your data use the following command:
 
-```ruby
+```python
 python scripts/embed.py \
 --ids data/sample.ids --metadata data/sample-metadata.json \
 --model ./model.tar.gz \
@@ -98,7 +151,7 @@ You will need the following files:
 * `train.txt`,`val.txt`, `test.txt` containing document ids corresponding to train/val/test sets (one doc id per line).
 
 The `data.json` file should have the following structure (a nested dict):  
-```ruby
+```python
 {"docid1" : {  "docid11": {"count": 1}, 
                "docid12": {"count": 5},
                "docid13": {"count": 1}, ....
@@ -112,7 +165,7 @@ Where `docids` are ids of documents in your data and `count` is a measure of imp
 The `create_training_files.py` script processes this structure with a triplet sampler that selects both easy and hard negatives (as described in the paper) according the `count` value in the above structure. For example papers with `count=5` are considered positive candidates, papers with `count=1` considered hard negatives and other papers that are not cited are easy negatives. You can control the number of hard negatives by setting `--ratio_hard_negatives` argument in the script.  
 
 - Create preprocessed training files:  
-```ruby
+```python
 python specter/data_utils/create_training_files.py \
 --data-dir data/training \
 --metadata data/training/metadata.json \
@@ -122,7 +175,7 @@ python specter/data_utils/create_training_files.py \
 After preprocessing the data you will have three pickled files containing training instannces as well as a `metrics.json` showing number of examples in each set. Use the following script to start training the model:
 
 - Run the training script
-```ruby
+```python
 ./scripts/run-exp-simple.sh -c experiment_configs/simple.jsonnet \
 -s model-output/ --num-epochs 2 --batch-size 4 \
 --train-path data/preprocessed/data-train.p --dev-path data/preprocessed/data-val.p \
@@ -134,6 +187,7 @@ Note that you need to set the correct `--num-train-instances` for your dataset. 
 You can monitor the training progress using `tensorboard`:  
 `tensorboard --logdir model-output/  --bind_all`
 
+### 
 
 # SciDocs benchmark
 
@@ -148,9 +202,9 @@ Link to SciDocs:
 
 Please cite the [SPECTER paper](https://arxiv.org/pdf/2004.07180.pdf) as:  
 
-```ruby
+```bibtex
 @inproceedings{specter2020cohan,
-  title={SPECTER: Document-level Representation Learning using Citation-informed Transformers},
+  title={{SPECTER: Document-level Representation Learning using Citation-informed Transformers}},
   author={Arman Cohan and Sergey Feldman and Iz Beltagy and Doug Downey and Daniel S. Weld},
   booktitle={ACL},
   year={2020}

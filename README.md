@@ -11,6 +11,9 @@ This repository contains code, link to pretrained models, instructions to use [S
 ***** New Jan 2021: HuggingFace models *****
 
 Specter is now accessible through HuggingFace's transformers library.  
+
+*Thanks to [@zhipenghoustat](https://github.com/zhipenghoustat) for providing the Huggingface training scripts and the checkpoint.*
+
 See below:
 
 # How to use the pretrained model
@@ -182,6 +185,7 @@ Note that you need to set the correct `--num-train-instances` for your dataset. 
 You can monitor the training progress using `tensorboard`:  
 `tensorboard --logdir model-output/  --bind_all`
 
+### 
 
 # SciDocs benchmark
 

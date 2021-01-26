@@ -11,7 +11,7 @@ This repository contains code, link to pretrained models, instructions to use [S
 ***** New Jan 2021: HuggingFace models *****
 
 Specter is now accessible through HuggingFace's transformers library.  
-See [**Huggingface Library**](#1-Through-Huggingface-Transformers-Library).
+See below:
 
 # How to use the pretrained model
 
@@ -48,8 +48,14 @@ CUDA_VISIBLE_DEVICES=0 python scripts/embed_papers_hf.py \
 --batch-size 8
 ```
 
-** Note that huggingface model yields slightly different results than those reported in the paper.  
-To reproduce our exact numbers use our original implementation.
+** Note that huggingface model yields slightly higher average results than those reported in the paper.
+To reproduce our exact numbers use our original implementation see [**reproducing results**](#How-to-reproduce-our-results).
+
+*Expected SciDocs results from the huggingface model:*
+
+| mag-f1 	| mesh-f1 	| co-view-map 	| co-view-ndcg 	| co-read-map 	| co-read-ndcg 	| cite-map 	| cite-ndcg 	| cocite-map 	| cocite-ndcg 	| recomm-ndcg 	| recomm-P@1 	| Avg  	|
+|--------	|---------	|-------------	|--------------	|-------------	|--------------	|----------	|-----------	|------------	|-------------	|-------------	|------------	|------	|
+| 79.4   	| 87.7    	| 83.4        	| 91.4         	| 85.1        	| 92.7         	| 92.0     	| 96.6      	| 88.0       	| 94.7        	| 54.6        	| 20.9       	| 80.5 	|
 
 ## 2- Through this repo
 

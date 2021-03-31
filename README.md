@@ -10,6 +10,7 @@
 This repository contains code, link to pretrained models, instructions to use [SPECTER](https://arxiv.org/pdf/2004.07180.pdf) and link to the [SciDocs](https://github.com/allenai/scidocs) evaluation framework.
 
 
+
 ***** New Jan 2021: HuggingFace models *****
 
 Specter is now accessible through HuggingFace's transformers library.  
@@ -101,6 +102,9 @@ python setup.py install
 
 
 3 - Embed papers or documents using SPECTER
+
+**Errata for paper**: In the paper we mentioned that we take the representation corresponding to the `[CLS]` token as the aggregate representation of the sequence. However, in the AllenNLP v0.9 implementation of BERT embedder, each token representation is a [scalar mix](https://github.com/allenai/allennlp/blob/542ce5d9137840e8197ef5781cd12f02f1c86f79/allennlp/modules/scalar_mix.py#L10) of all layer representations. To get aggregate representation of the input in a single vector, average pooling is used. Therefore, the original SPECTER model uses scalar mixing of layers and average pooling to embed a given document as opposed to taking the final layer represenation of the `[CLS]` token.
+The Huggingface model above uses final layer represnation of `[CLS]`. In paractice this doesn't impact the results and both models perform comparably.
 
 Specter requires two main files as input to embed the document. A text file with ids of the documents you want to embed and a json metadata file consisting of the title and abstract information. Sample files are provided in the `data/` directory to get you started. Input data format is according to:
 

@@ -66,7 +66,7 @@ To reproduce our exact numbers use our original implementation see [**reproducin
 ## 2- Through this repo
 
 **Errata for paper**: In the paper we mentioned that we take the representation corresponding to the `[CLS]` token as the aggregate representation of the sequence. However, in the AllenNLP v0.9 implementation of BERT embedder, each token representation is a [scalar mix](https://github.com/allenai/allennlp/blob/542ce5d9137840e8197ef5781cd12f02f1c86f79/allennlp/modules/scalar_mix.py#L10) of all layer representations. To get aggregate representation of the input in a single vector, average pooling is used. Therefore, the original SPECTER model uses scalar mixing of layers and average pooling to embed a given document as opposed to taking the final layer represenation of the `[CLS]` token.
-The Huggingface model above uses final layer represnation of `[CLS]`. In paractice this doesn't impact the results and both models perform comparably.
+The Huggingface model above uses final layer represnation of `[CLS]`. In practice this doesn't impact the results and both models perform comparably.
 
 1 - Clone the repo and download the pretrained model and supporting files:
 

@@ -1,12 +1,19 @@
-torch ==1.6.0
-transformers == 3.4.0
-pytorch-lightning == 1.0.3
+#torch ==1.6.0
+#transformers == 3.4.0
+#pytorch-lightning == 1.0.3
+torch==1.6.0
+transformers==3.4.0
+pytorch-lightning==1.0.3
+
 
 # allennlp 0.9 with gradient accumulation and fp16
 # need
 # sudo yum -y install gcc
 # sudo yum install python3-devel
--e git://github.com/ibeltagy/allennlp@fp16_v0.9.0#egg=allennlp
+#-e git://github.com/ibeltagy/allennlp@fp16_v0.9.0#egg=allennlp
+-e git+https://github.com/ibeltagy/allennlp@fp16_v0.9.0#egg=allennlp
+
+
 
 # Also need to install tensorflow if want to use tensorboard with full feature.
 # tensorflow == 2.3.1

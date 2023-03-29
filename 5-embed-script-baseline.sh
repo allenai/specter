@@ -16,7 +16,10 @@ python scripts/embed.py \
 --output-file output_baseline.jsonl \
 --vocab-dir data/vocab/ \
 --batch-size 16 \
---cuda-device -1 # 0 = use GPU, -1 = use CPU
+--cuda-device -1 \
+--weights-file ./model_data/weights.th
+# 0 = use GPU, -1 = use CPU
+
 
 # The script is converted to shell script
 # python specter/predict_command.py predict

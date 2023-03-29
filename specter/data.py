@@ -34,6 +34,10 @@ logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 NO_VENUE_TEXT = '--no_venue--'
 
 
+@DatasetReader.register('thesis_data_reader_pickled')
+class DataReaderFromPickled(DatasetReader):
+    pass
+
 @DatasetReader.register("specter_data_reader_pickled")
 class DataReaderFromPickled(DatasetReader):
 

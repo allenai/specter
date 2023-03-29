@@ -107,7 +107,6 @@ class BinaryLoss(nn.Module):
         return torch.pow(distance_positive, 2) + torch.pow(torch.clamp(self.margin - distance_negative, min=0.0), 2)
 
 
-
 @Model.register("specter")
 class Specter(Model):
 
@@ -141,7 +140,7 @@ class Specter(Model):
                  ) -> None:
         super(Specter, self).__init__(vocab, regularizer)
 
-        for lbl in range(max_num_authors):
+        for lbl in range(max_num_authors): # TODO SHOULD BE REMOVED
             vocab.add_token_to_namespace(token=str(lbl), namespace='author_positions')
 
         self.text_field_embedder = text_field_embedder

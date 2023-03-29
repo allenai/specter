@@ -116,10 +116,12 @@ def predictor_from_archive(archive: Archive, predictor_name: str = None,
     config = archive.config.duplicate()
 
     if not predictor_name:
+        print("[DEBUG] no predictor name")
         model_type = config.get("model").get("type")
         if not model_type in DEFAULT_PREDICTORS:
             raise ConfigurationError(f"No default predictor for model type {model_type}.\n"\
                                      f"Please specify a predictor explicitly.")
+        print("[DEBUG] default predictors: ", DEFAULT_PREDICTORS)
         predictor_name = DEFAULT_PREDICTORS[model_type]
 
     dataset_config = config["dataset_reader"].as_dict()
@@ -142,6 +144,8 @@ def predictor_from_archive(archive: Archive, predictor_name: str = None,
 
 def _get_predictor(args: argparse.Namespace) -> Predictor:
     check_for_gpu(args.cuda_device)
+    print("[DEBUG]","args.weights_file:", args.weights_file)
+    print("[DEBUG]", "args.overrides", args.overrides)
     archive = load_archive(args.archive_file,
                            weights_file=args.weights_file,
                            cuda_device=args.cuda_device,
@@ -204,7 +208,8 @@ def main(prog: str = None,
                                    help='additional packages to include')
 
     args = parser.parse_args()
-
+    # print("DEBUG ---args:", args)
+    # sys.exit()
     # If a subparser is triggered, it adds its work as `args.func`.
     # So if no such attribute has been added, no subparser was triggered,
     # so give the user some help.

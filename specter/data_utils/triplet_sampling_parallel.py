@@ -59,9 +59,12 @@ def _get_triplet(query):
     margin = _margin_fraction * coview_spread  # minimum margin of coviews between good and bad sample
 
     # If distance is 1 increase margin to 1 otherwise any margin_fraction will pass
-    if is_int(candidates[0][1]) and is_int(candidates[-1][1]) and coview_spread == 1:
-        margin = np.ceil(margin)
-
+    try:
+        if is_int(candidates[0][1]) and is_int(candidates[-1][1]) and coview_spread == 1:
+            margin = np.ceil(margin)
+    except IndexError as ie:
+        print("INDEX ERROR.")
+        raise Exception(ie)
 
     results = []
 

@@ -18,7 +18,8 @@ import subprocess
 import argparse
 
 import logging
-
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger('scripts.embed')
 
 def main():
     parser = argparse.ArgumentParser()
@@ -62,6 +63,9 @@ def main():
     logging.info('running command:')
     logging.info(' '.join(command))
 
+    # print(" ".join(command))
+    # import sys
+    # sys.exit()
     subprocess.run(' '.join(command), shell=True)
 
 if __name__ == '__main__':

@@ -62,6 +62,11 @@ def main():
 
     logging.info('running command:')
     logging.info(' '.join(command))
+    """
+    THIS PRINTS OUT COMMAND: 
+    python specter/predict_command.py predict ........
+    
+    """
 
     # print(" ".join(command))
     # import sys

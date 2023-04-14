@@ -129,3 +129,12 @@ dmypy.json
 .pyre/
 
 src/
+
+/model-output
+/model-output2
+/model_data
+*.tar.gz
+/hf_model/
+/data/
+/thesis_data/
+*.jsonl

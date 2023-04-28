@@ -1,0 +1,34 @@
+version: '3'
+services: 
+  specter:
+    container_name: specter
+    build:
+      context: .
+      dockerfile: ./build/Dockerfile
+      args:
+        - HTTP_PROXY=${HTTP_PROXY}
+        - http_proxy=${http_proxy}
+        - HTTPS_PROXY=${HTTPS_PROXY}
+        - https_proxy=${https_proxy}
+        - FTP_PROXY=${FTP_PROXY}
+        - ftp_proxy=${ftp_proxy}
+
+    ipc: host
+    #user: "${UID}:${GID}"
+    volumes: 
+      #- /etc/group:/etc/group:ro
+      #- /etc/passwd:/etc/passwd:ro
+      - ./source:/workspace
+      - ../:/workspace/axcellExp
+      - ../../dataserver/paper_recom/data:/workspace/dataserver
+
+    tty: true
+    ports:
+      - "0.0.0.0:6006:6006"
+    #restart: always
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              capabilities: [gpu, utility, compute]

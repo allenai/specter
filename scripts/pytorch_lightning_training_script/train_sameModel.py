@@ -30,14 +30,12 @@ import os
 import traceback
 import matplotlib.pyplot as plt
 
+"""
+SPECTERを観点ごとのデータで1つのモデルを学習する
+（観点ごとにモデルを分けない）
+"""
+
 logger = logging.getLogger(__name__)
-
-# pytorch packages
-
-# pytorch lightning packages
-
-# huggingface transformers packages
-
 
 # Globe constants
 training_size = 684100
@@ -62,14 +60,11 @@ arg_to_scheduler_metavar = "{" + ", ".join(arg_to_scheduler_choices) + "}"
 """
 自分で定義するデータセット
 """
-
-
 class MyData(IterableDataset):
     # def __init__(self, data, tokenizer, size):
-    def __init__(self, data, labeled_abst_Dict, label, tokenizer, block_size=100):
+    def __init__(self, data, labeled_abst_Dict, tokenizer, block_size=100):
         self.data_instances = data
         self.labeled_abst_dict = labeled_abst_Dict
-        self.label = label
         self.tokenizer = tokenizer
         self.block_size = block_size
 
@@ -80,7 +75,7 @@ class MyData(IterableDataset):
         worker_info = torch.utils.data.get_worker_info()
         # for data_instance in self.data_instances:
         #         yield self.retTransformersInput(data_instance, self.tokenizer)
-
+                
         if worker_info is None:
             for data_instance in self.data_instances:
                 yield self.retTransformersInput(data_instance, self.tokenizer)
@@ -95,24 +90,24 @@ class MyData(IterableDataset):
                 else:
                     i = i + 1
                     yield self.retTransformersInput(data_instance, self.tokenizer)
-
+        
     def retTransformersInput(self, data_instance, tokenizer):
         sourceEncoded = self.tokenizer(
-            self.labeled_abst_dict[data_instance["source"]][self.label],
+            self.labeled_abst_dict[data_instance["source"]][data_instance["label"]],
             padding="max_length",
             return_tensors="pt",
             truncation=True,
             max_length=512,
         )
         posEncoded = self.tokenizer(
-            self.labeled_abst_dict[data_instance["pos"]][self.label],
+            self.labeled_abst_dict[data_instance["pos"]][data_instance["label"]],
             padding="max_length",
             return_tensors="pt",
             truncation=True,
             max_length=512,
         )
         negEncoded = self.tokenizer(
-            self.labeled_abst_dict[data_instance["neg"]][self.label],
+            self.labeled_abst_dict[data_instance["neg"]][data_instance["label"]],
             padding="max_length",
             return_tensors="pt",
             truncation=True,
@@ -139,8 +134,6 @@ class MyData(IterableDataset):
 """
 ロス計算を行うモジュール
 """
-
-
 class TripletLoss(nn.Module):
     """
     Triplet loss: copied from  https://github.com/allenai/specter/blob/673346f9f76bcf422b38e0d1b448ef4414bcd4df/specter/model.py#L159 without any change
@@ -205,8 +198,6 @@ class TripletLoss(nn.Module):
 """
 モデルのクラス
 """
-
-
 class Specter(pl.LightningModule):
     def __init__(self, init_args):
         super().__init__()
@@ -216,7 +207,6 @@ class Specter(pl.LightningModule):
         checkpoint_path = init_args.checkpoint_path
         logger.info(f'loading model from checkpoint: {checkpoint_path}')
 
-        self.label = init_args.label
         self.hparams = init_args
 
         # self.model = AutoModel.from_pretrained("allenai/scibert_scivocab_cased")
@@ -251,22 +241,31 @@ class Specter(pl.LightningModule):
     """
 
     def _get_loader(self, split):
-        path = "/workspace/dataserver/axcell/large/specter/" + \
-            self.hparams.method + "/triple-" + \
-            self.label + "-" + split + ".json"
-        with open(path, 'r') as f:
-            data = json.load(f)
-
-        print(path)
-        print("-----data length -----", len(data))
+        allLabelData = []
+        for label in self.hparams.labelList:
+            path = "/workspace/dataserver/axcell/large/specter/" + \
+                self.hparams.method + "/triple-" + \
+                label + "-" + split + ".json"
+            with open(path, 'r') as f:
+                data = json.load(f)
+            for i, item in enumerate(data):
+                item["label"] = label
+                data[i] = item
+            allLabelData += data
+            
+            print("-----data length -----", len(data))
+            print(path)
+            print(f'label: {label}')
+            print(f'len(allLabelData): {len(allLabelData)}')
+        
         path = "/workspace/dataserver/axcell/large/labeledAbst.json"
         with open(path, 'r') as f:
             labeledAbstDict = json.load(f)
         # 扱いやすいようにアブストだけでなくタイトルもvalueで参照できるようにしておく
         for title in labeledAbstDict:
             labeledAbstDict[title]["title"] = title
-
-        dataset = MyData(data, labeledAbstDict, self.label, self.tokenizer)
+        
+        dataset = MyData(allLabelData, labeledAbstDict, self.tokenizer)
 
         # pin_memory enables faster data transfer to CUDA-enabled GPU.
         loader = DataLoader(dataset, batch_size=self.hparams.batch_size, num_workers=self.hparams.num_workers,
@@ -424,7 +423,6 @@ def parse_args():
                         help='path to the model (if not setting checkpoint)')
     parser.add_argument('--method')
     parser.add_argument('--margin', default=1)
-    parser.add_argument('--label', default=None)
     parser.add_argument('--version', default=0)
     parser.add_argument('--input_dir', default=None,
                         help='optionally provide a directory of the data and train/test/dev files will be automatically detected')
@@ -490,8 +488,6 @@ def get_train_params(args):
     return train_params
 
 # LINEに通知する関数
-
-
 def line_notify(message):
     line_notify_token = 'Jou3ZkH4ajtSTaIWO3POoQvvCJQIdXFyYUaRKlZhHMI'
     line_notify_api = 'https://notify-api.line.me/api/notify'
@@ -527,99 +523,92 @@ def main():
             trainer.test(model)
 
         else:
-            if args.label:
-                labelList = [args.label]
-            else:
-                labelList = ["title", "bg", "obj", "method", "res"]
+            labelList = ["title", "bg", "obj", "method", "res"]
+            args.labelList = labelList
+            
+            line_notify("172.21.64.47: specterのtrain_sameModel.pyが開始")
 
-            line_notify("172.21.64.47: specterのtrain.pyが開始")
+            model = Specter(args)
 
+            # default logger used by trainer
+            logger = TensorBoardLogger(
+                save_dir=args.save_dir,
+                version=args.version,
+                name='pl-logs'
+            )
+
+            # second part of the path shouldn't be f-string
+            dirPath = f'/workspace/dataserver/model_outputs/specter/{args.method}_{logger.version}/'
+            filepath = dirPath + 'checkpoints/ep-{epoch}_avg_val_loss-{avg_val_loss:.3f}'
+            checkpoint_callback = ModelCheckpoint(
+                filepath=filepath,
+                save_top_k=4,
+                verbose=True,
+                monitor='avg_val_loss',  # monitors metrics logged by self.log.
+                mode='min',
+                prefix=''
+            )
+
+            extra_train_params = get_train_params(args)
+
+            trainer = pl.Trainer(logger=logger,
+                                checkpoint_callback=checkpoint_callback,
+                                **extra_train_params)
+
+            trainer.fit(model)
+            
+            """
+            ロスの可視化
+            """
+            allLabelData = []
             for label in labelList:
-                args.label = label
-
-                model = Specter(args)
-
-                # default logger used by trainer
-                logger = TensorBoardLogger(
-                    save_dir=args.save_dir,
-                    version=args.version,
-                    name='pl-logs'
-                )
-
-                # second part of the path shouldn't be f-string
-                dirPath = f'/workspace/dataserver/model_outputs/specter/{args.method}_{logger.version}/'
-                filepath = dirPath + 'checkpoints/' + args.label + \
-                    '-ep-{epoch}_avg_val_loss-{avg_val_loss:.3f}'
-                checkpoint_callback = ModelCheckpoint(
-                    filepath=filepath,
-                    save_top_k=4,
-                    verbose=True,
-                    # monitors metrics logged by self.log.
-                    monitor='avg_val_loss',
-                    mode='min',
-                    prefix=''
-                )
-
-                extra_train_params = get_train_params(args)
-
-                trainer = pl.Trainer(logger=logger,
-                                     checkpoint_callback=checkpoint_callback,
-                                     **extra_train_params)
-
-                trainer.fit(model)
-
-                """
-                ロスの可視化
-                """
                 dataPath = "/workspace/dataserver/axcell/large/specter/" + \
                     args.method + "/triple-" + \
-                    args.label + "-train.json"
+                    label + "-train.json"
                 with open(dataPath, 'r') as f:
                     data = json.load(f)
+                allLabelData += data
+                
+            fig = plt.figure()
+            x = list(range(1, len(model.lossList) + 1))
+            for i in range(1, args.num_epochs):
+                # trainningデータの長さをバッチサイズで割り、1を足す
+                vlineValue = (int(len(allLabelData)/args.batch_size)+1)*i
+                # print(vlineValue)
+                plt.vlines(x=vlineValue, ymin=0, ymax=2, colors="gray", linestyles="dashed", label="epoch"+str(i))
+            plt.legend()
+            
+            # ロスの線が潰れないように束でとって平均化する
+            batch = 100
+            pltLossList = []
+            pltX = []
+            for i in range(int(len(model.lossList)/batch)+1):
+                if i*batch+batch < len(model.lossList):
+                    pltLossList.append(np.mean(model.lossList[i*batch:i*batch+batch]))
+                    print(i*batch,i*batch+batch)
+                else:
+                    pltLossList.append(np.mean(model.lossList[i*batch:]))
+                    print(i*batch)
+                pltX.append(i*batch)
+            plt.plot(pltX, pltLossList)
+            
+            imgDirPath = dirPath +  "image/"
+            imgPath = imgDirPath + "loss.png"
+            if not os.path.exists(imgDirPath):
+                os.mkdir(imgDirPath)
+            fig.savefig(imgPath)
+            
+            with open(dirPath + "args.json", "w") as f:
+                json.dump(vars(args), f, indent=4)
 
-                fig = plt.figure()
-                x = list(range(1, len(model.lossList) + 1))
-                for i in range(1, args.num_epochs):
-                    # trainningデータの長さをバッチサイズで割り、1を足す
-                    vlineValue = (int(len(data)/args.batch_size)+1)*i
-                    # print(vlineValue)
-                    plt.vlines(x=vlineValue, ymin=0, ymax=2, colors="gray",
-                               linestyles="dashed", label="epoch"+str(i))
-                plt.legend()
-
-                # ロスの線が潰れないように束でとって平均化する
-                batch = 100
-                pltLossList = []
-                pltX = []
-                for i in range(int(len(model.lossList)/batch)+1):
-                    if i*batch+batch < len(model.lossList):
-                        pltLossList.append(
-                            np.mean(model.lossList[i*batch:i*batch+batch]))
-                        print(i*batch, i*batch+batch)
-                    else:
-                        pltLossList.append(np.mean(model.lossList[i*batch:]))
-                        print(i*batch)
-                    pltX.append(i*batch)
-                plt.plot(pltX, pltLossList)
-
-                imgDirPath = dirPath + "image/"
-                imgPath = imgDirPath + "loss-" + args.label + ".png"
-                if not os.path.exists(imgDirPath):
-                    os.mkdir(imgDirPath)
-                fig.savefig(imgPath)
-
-                with open(dirPath + "args.json", "w") as f:
-                    json.dump(vars(args), f, indent=4)
-
-                line_notify("172.21.65.47: specterのtrain.py" +
-                            "の" + args.label + "の観点" + "が終了")
-
-                del model
-                del logger
-                del trainer
-                del filepath
-                del fig
-                torch.cuda.empty_cache()
+            line_notify("172.21.65.47: specterのtrain_sameModel.pyが終了")
+            
+            del model
+            del logger
+            del trainer
+            del filepath
+            del fig
+            torch.cuda.empty_cache()
 
     except Exception as e:
         print(traceback.format_exc())

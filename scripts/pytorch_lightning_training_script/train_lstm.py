@@ -43,6 +43,8 @@ logger = logging.getLogger(__name__)
 training_size = 684100
 # validation_size = 145375
 
+bertOutputSize = 768
+
 # log_every_n_steps how frequently pytorch lightning logs.
 # By default, Lightning logs every 50 rows, or 50 training steps.
 log_every_n_steps = 1
@@ -219,12 +221,23 @@ class Specter(pl.LightningModule):
         self.label = init_args.label
         self.hparams = init_args
 
-        # self.model = AutoModel.from_pretrained("allenai/scibert_scivocab_cased")
-        # self.tokenizer = AutoTokenizer.from_pretrained("allenai/scibert_scivocab_cased")
+        # SciBERTを初期値とする場合
+        self.model = AutoModel.from_pretrained(
+            "allenai/scibert_scivocab_cased")
+        self.tokenizer = AutoTokenizer.from_pretrained(
+            "allenai/scibert_scivocab_cased")
 
         # SPECTERを初期値とする場合
-        self.model = AutoModel.from_pretrained("allenai/specter")
-        self.tokenizer = AutoTokenizer.from_pretrained("allenai/specter")
+        # self.model = AutoModel.from_pretrained("allenai/specter")
+        # self.tokenizer = AutoTokenizer.from_pretrained("allenai/specter")
+
+        # BERTの出力トークンを統合するレイヤー
+        # input_size: 各時刻における入力ベクトルのサイズ、ここではBERTの出力の768次元になる
+        # hidden_size: メモリセルとかゲートの隠れ層の次元、出力のベクトルの次元もこの値になる（Batch_size, sequence_length, hidden_size)
+        #   chatGPTによると一般的には、LSTMの隠れ層の次元は、入力データの次元と同じであることが多い
+        self.lstm = nn.LSTM(input_size=bertOutputSize,
+                            hidden_size=bertOutputSize, batch_first=True)
+        # self.regressor = nn.Linear(in_features=self.config.hidden_size, out_features=1)
 
         self.tokenizer.model_max_length = self.model.config.max_position_embeddings
         self.hparams.seqlen = self.model.config.max_position_embeddings
@@ -243,7 +256,19 @@ class Specter(pl.LightningModule):
         # in lightning, forward defines the prediction/inference actions
         source_embedding = self.model(
             input_ids=input_ids, token_type_ids=token_type_ids, attention_mask=attention_mask)
-        return source_embedding[1]
+
+        # lstmの出力は（Batch_size, sequence_length, hidden_size)の次元のテンソル。
+        # 最後のLSTMの出力を得るにはsequence_lengthの最後、つまり[:,-1,:]を指定すればいい
+        out, _ = self.lstm(source_embedding['last_hidden_state'], None)
+        print("-------------------")
+        print("---out---")
+        print(out)
+
+        print("---sequence_output ----")
+        sequence_output = out[:, -1, :]
+        print(sequence_output)
+        exit()
+        return sequence_output
 
     """
     このメソッドでallennlp用のデータをロードして、トークナイズまで行う（tokentype_id, attention_maskなど)

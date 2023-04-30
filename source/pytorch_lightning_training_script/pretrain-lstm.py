@@ -1,9 +1,17 @@
 # basic python packages
+import matplotlib.pyplot as plt
+import traceback
+import os
+import requests
+
+# allennlp dataloading packages
 from allennlp.data.tokenizers.token import Token
 from allennlp.data.tokenizers.word_splitter import WordSplitter
 from allennlp.data.token_indexers import TokenIndexer
 from allennlp.data.tokenizers import Tokenizer
 from allennlp.data.dataset_readers.dataset_reader import DatasetReader
+
+# huggingface transformers packages
 from transformers.optimization import (
     Adafactor,
     get_cosine_schedule_with_warmup,
@@ -13,9 +21,13 @@ from transformers.optimization import (
 )
 from transformers import AutoTokenizer, AutoModel
 from transformers import AdamW
+
+# pytorch lightning packages
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import TensorBoardLogger
 import pytorch_lightning as pl
+
+# pytorch packages
 from torch.utils.data import DataLoader, IterableDataset
 import torch.nn.functional as F
 import torch.nn as nn
@@ -32,13 +44,6 @@ import itertools
 import logging
 logger = logging.getLogger(__name__)
 
-# pytorch packages
-
-# pytorch lightning packages
-
-# huggingface transformers packages
-
-# allennlp dataloading packages
 
 # Globe constants
 training_size = 684100
@@ -59,9 +64,12 @@ arg_to_scheduler = {
 arg_to_scheduler_choices = sorted(arg_to_scheduler.keys())
 arg_to_scheduler_metavar = "{" + ", ".join(arg_to_scheduler_choices) + "}"
 
+bertOutputSize = 768
+
 
 class DataReaderFromPickled(DatasetReader):
     """
+    pklファイルを読むためのクラス
     This is copied from https://github.com/allenai/specter/blob/673346f9f76bcf422b38e0d1b448ef4414bcd4df/specter/data.py#L61:L109 without any change
     """
 
@@ -90,10 +98,14 @@ class DataReaderFromPickled(DatasetReader):
         Args:
             file_path: path to the pickled instances
         """
+        count = 0
         with open(file_path, 'rb') as f_in:
             unpickler = pickle.Unpickler(f_in)
             while True:
                 try:
+                    count += 1
+                    # if count > 10:
+                    #     break
                     instance = unpickler.load()
                     # compatibility with old models:
                     # for field in instance.fields:
@@ -134,8 +146,10 @@ class DataReaderFromPickled(DatasetReader):
                                         :self.max_sequence_length]
                                 if field_type == 'abstract' and self._concat_title_abstract:
                                     instance.fields.pop(field, None)
+                    # print("Data Count: ", count)
                     yield instance
                 except EOFError:
+
                     break
 
 
@@ -334,7 +348,15 @@ class Specter(pl.LightningModule):
             "allenai/scibert_scivocab_cased")
         self.tokenizer.model_max_length = self.model.config.max_position_embeddings
         self.hparams.seqlen = self.model.config.max_position_embeddings
-        self.triple_loss = TripletLoss()
+
+        # BERTの出力トークンを統合するレイヤー
+        # input_size: 各時刻における入力ベクトルのサイズ、ここではBERTの出力の768次元になる
+        # hidden_size: メモリセルとかゲートの隠れ層の次元、出力のベクトルの次元もこの値になる（Batch_size, sequence_length, hidden_size)
+        #   chatGPTによると一般的には、LSTMの隠れ層の次元は、入力データの次元と同じであることが多い
+        self.lstm = nn.LSTM(input_size=bertOutputSize,
+                            hidden_size=bertOutputSize, batch_first=True)
+
+        self.triple_loss = TripletLoss(margin=float(init_args.margin))
         # number of training instances
         self.training_size = None
         # number of testing instances
@@ -344,11 +366,15 @@ class Specter(pl.LightningModule):
         # This is a dictionary to save the embeddings for source papers in test step.
         self.embedding_output = {}
 
+        self.lossList = []
+
     def forward(self, input_ids, token_type_ids, attention_mask):
         # in lightning, forward defines the prediction/inference actions
         source_embedding = self.model(
             input_ids=input_ids, token_type_ids=token_type_ids, attention_mask=attention_mask)
-        return source_embedding[1]
+        out, _ = self.lstm(source_embedding['last_hidden_state'], None)
+
+        return out[:, -1, :]
 
     def _get_loader(self, split):
         if split == 'train':
@@ -370,6 +396,7 @@ class Specter(pl.LightningModule):
             dataset = IterableDataSetMultiWorker(
                 file_path=fname, tokenizer=self.tokenizer, size=size)
 
+        print(dataset)
         # pin_memory enables faster data transfer to CUDA-enabled GPU.
         loader = DataLoader(dataset, batch_size=self.hparams.batch_size, num_workers=self.hparams.num_workers,
                             shuffle=False, pin_memory=False)
@@ -451,6 +478,9 @@ class Specter(pl.LightningModule):
                  on_epoch=False, prog_bar=True, logger=True)
         self.log('rate', lr_scheduler.get_last_lr()
                  [-1], on_step=True, on_epoch=False, prog_bar=True, logger=True)
+
+        self.lossList.append(loss.detach().cpu().numpy())
+
         return {"loss": loss}
 
     def validation_step(self, batch, batch_idx):
@@ -506,7 +536,18 @@ def parse_args():
                         help='path to the model (if not setting checkpoint)')
     parser.add_argument('--train_file')
     parser.add_argument('--dev_file')
-    parser.add_argument('--test_file')
+    # parser.add_argument('--test_file')
+
+    # TripletLossのmarginを指定する、SPECTERでは1
+    parser.add_argument('--margin', default=1)
+
+    # Finetuningの場合に、どの手法で作成したトリプレットを選択するかを指定する eg. paper, tf-idf-title
+    parser.add_argument('--method')
+    # Finetuningの場合に、特定の観点のみ学習する場合に指定する eg. bg, obj
+    parser.add_argument('--label', default=None)
+    # 何回も学習してわからなくならないようにmodeloutputにversionをつけられる。文字列可
+    parser.add_argument('--version', default=0)
+
     parser.add_argument('--input_dir', default=None,
                         help='optionally provide a directory of the data and train/test/dev files will be automatically detected')
     parser.add_argument('--batch_size', default=1, type=int)
@@ -554,6 +595,19 @@ def parse_args():
     return args
 
 
+def line_notify(message):
+    """LINEに通知するメソッド
+
+    Args:
+        message (string): LINEに送るテキスト
+    """
+    line_notify_token = 'Jou3ZkH4ajtSTaIWO3POoQvvCJQIdXFyYUaRKlZhHMI'
+    line_notify_api = 'https://notify-api.line.me/api/notify'
+    payload = {'message': message}
+    headers = {'Authorization': 'Bearer ' + line_notify_token}
+    requests.post(line_notify_api, data=payload, headers=headers)
+
+
 def get_train_params(args):
     train_params = {}
     train_params["precision"] = 16 if args.fp16 else 32
@@ -572,60 +626,116 @@ def get_train_params(args):
 
 
 def main():
-    args = parse_args()
-    random.seed(args.seed)
-    np.random.seed(args.seed)
-    torch.manual_seed(args.seed)
-    if args.num_workers == 0:
-        print("num_workers cannot be less than 1")
-        return
+    try:
+        args = parse_args()
+        random.seed(args.seed)
+        np.random.seed(args.seed)
+        torch.manual_seed(args.seed)
+        if args.num_workers == 0:
+            print("num_workers cannot be less than 1")
+            return
 
-    if torch.cuda.is_available():
-        torch.cuda.manual_seed_all(args.seed)
-    if ',' in args.gpus:
-        args.gpus = list(map(int, args.gpus.split(',')))
-        args.total_gpus = len(args.gpus)
-    else:
-        args.gpus = int(args.gpus)
-        args.total_gpus = args.gpus
+        if torch.cuda.is_available():
+            torch.cuda.manual_seed_all(args.seed)
+        if ',' in args.gpus:
+            args.gpus = list(map(int, args.gpus.split(',')))
+            args.total_gpus = len(args.gpus)
+        else:
+            args.gpus = int(args.gpus)
+            args.total_gpus = args.gpus
 
-    if args.test_only:
-        print('loading model...')
-        model = Specter.load_from_checkpoint(args.test_checkpoint)
-        trainer = pl.Trainer(
-            gpus=args.gpus, limit_val_batches=args.limit_val_batches)
-        trainer.test(model)
+        if args.test_only:
+            print('loading model...')
+            model = Specter.load_from_checkpoint(args.test_checkpoint)
+            trainer = pl.Trainer(
+                gpus=args.gpus, limit_val_batches=args.limit_val_batches)
+            trainer.test(model)
 
-    else:
+        else:
+            if args.label:
+                labelList = [args.label]
+            else:
+                labelList = ["title", "bg", "obj", "method", "res"]
 
-        model = Specter(args)
+            model = Specter(args)
 
-        # default logger used by trainer
-        logger = TensorBoardLogger(
-            save_dir=args.save_dir,
-            version=0,
-            name='pl-logs'
-        )
+            # default logger used by trainer
+            logger = TensorBoardLogger(
+                save_dir=args.save_dir,
+                version=0,
+                name='pl-logs'
+            )
 
-        # second part of the path shouldn't be f-string
-        filepath = f'{args.save_dir}/version_{logger.version}/checkpoints/' + \
-            'ep-{epoch}_avg_val_loss-{avg_val_loss:.3f}'
-        checkpoint_callback = ModelCheckpoint(
-            filepath=filepath,
-            save_top_k=1,
-            verbose=True,
-            monitor='avg_val_loss',  # monitors metrics logged by self.log.
-            mode='min',
-            prefix=''
-        )
+            # second part of the path shouldn't be f-string
+            filepath = f'{args.save_dir}/version_{logger.version}/checkpoints/' + \
+                'ep-{epoch}_avg_val_loss-{avg_val_loss:.3f}'
+            checkpoint_callback = ModelCheckpoint(
+                filepath=filepath,
+                save_top_k=1,
+                verbose=True,
+                monitor='avg_val_loss',  # monitors metrics logged by self.log.
+                mode='min',
+                prefix=''
+            )
 
-        extra_train_params = get_train_params(args)
+            extra_train_params = get_train_params(args)
 
-        trainer = pl.Trainer(logger=logger,
-                             checkpoint_callback=checkpoint_callback,
-                             **extra_train_params)
+            trainer = pl.Trainer(logger=logger,
+                                 checkpoint_callback=checkpoint_callback,
+                                 **extra_train_params)
 
-        trainer.fit(model)
+            trainer.fit(model)
+            """
+            ロスの可視化
+            """
+            # dirPath = f'/workspace/dataserver/model_outputs/specter/{args.method}_{logger.version}/'
+            # dataPath = "/workspace/dataserver/axcell/large/specter/" + \
+            #     args.method + "/triple-" + \
+            #     args.label + "-train.json"
+            # with open(dataPath, 'r') as f:
+            #     data = json.load(f)
+
+            # fig = plt.figure()
+            # x = list(range(1, len(model.lossList) + 1))
+            # for i in range(1, args.num_epochs):
+            #     # trainningデータの長さをバッチサイズで割り、1を足す
+            #     vlineValue = (int(len(data)/args.batch_size)+1)*i
+            #     # print(vlineValue)
+            #     plt.vlines(x=vlineValue, ymin=0, ymax=2, colors="gray",
+            #                linestyles="dashed", label="epoch"+str(i))
+            # plt.legend()
+
+            # # ロスの線が潰れないように束でとって平均化する
+            # batch = 100
+            # pltLossList = []
+            # pltX = []
+            # for i in range(int(len(model.lossList)/batch)+1):
+            #     if i*batch+batch < len(model.lossList):
+            #         pltLossList.append(
+            #             np.mean(model.lossList[i*batch:i*batch+batch]))
+            #         print(i*batch, i*batch+batch)
+            #     else:
+            #         pltLossList.append(np.mean(model.lossList[i*batch:]))
+            #         print(i*batch)
+            #     pltX.append(i*batch)
+            # plt.plot(pltX, pltLossList)
+
+            # imgDirPath = dirPath + "image/"
+            # imgPath = imgDirPath + "loss-" + args.label + ".png"
+            # if not os.path.exists(imgDirPath):
+            #     os.mkdir(imgDirPath)
+            # fig.savefig(imgPath)
+
+            # with open(dirPath + "args.json", "w") as f:
+            #     json.dump(vars(args), f, indent=4)
+
+            line_notify("172.21.65.47:" + os.path.basename(__file__) + "が終了")
+
+    except Exception as e:
+        print(traceback.format_exc())
+        message = "172.21.65.47: Error: " + \
+            os.path.basename(__file__) + " " + str(traceback.format_exc())
+        line_notify(message)
 
 
 if __name__ == '__main__':

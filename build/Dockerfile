@@ -13,7 +13,7 @@ ENV http_proxy ${HTTP_PROXY}
 ENV https_proxy ${HTTP_PROXY}
 
 RUN apt-get update && apt-get upgrade -y \
- && apt-get install -y \
+    && apt-get install -y \
     vim \
     git \
     make \
@@ -34,12 +34,12 @@ RUN apt-get update && apt-get upgrade -y \
     liblzma-dev 
 
 RUN git config --global http.proxy http://proxy.cc.uec.ac.jp:8080 \
- && git config --global url."https://".insteadOf git:// 
+    && git config --global url."https://".insteadOf git:// 
 
 COPY source/pytorch_lightning_training_script/requirements.txt /workspace/requirements.txt
 RUN pip install --upgrade pip 
-RUN pip install -r requirements.txt \
- && pip install overrides==3.1.0
+RUN pip install allennlp==0.9.0 pytorch-lightning==1.0.3\
+    && pip install overrides==3.1.0
 
 ENV NVIDIA_VISIBLE_DEVICES all
 ENV NVIDIA_DRIVER_CAPABILITIES utility,compute

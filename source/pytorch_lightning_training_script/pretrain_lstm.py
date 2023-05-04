@@ -662,7 +662,7 @@ def main():
             # default logger used by trainer
             logger = TensorBoardLogger(
                 save_dir=args.save_dir,
-                version=0,
+                version=args.version,
                 name='pl-logs'
             )
 
@@ -671,7 +671,7 @@ def main():
                 'ep-{epoch}_avg_val_loss-{avg_val_loss:.3f}'
             checkpoint_callback = ModelCheckpoint(
                 filepath=filepath,
-                save_top_k=1,
+                save_top_k=4,
                 verbose=True,
                 monitor='avg_val_loss',  # monitors metrics logged by self.log.
                 mode='min',

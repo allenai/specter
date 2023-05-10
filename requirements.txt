@@ -4,4 +4,4 @@
 dill
 jsonlines
 pandas
-sklearn
+scikit-learn

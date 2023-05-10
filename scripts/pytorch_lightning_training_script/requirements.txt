@@ -1,4 +1,4 @@
-torch ==1.6.0
+torch ==1.13.1
 transformers == 3.4.0
 pytorch-lightning == 1.0.3
 
